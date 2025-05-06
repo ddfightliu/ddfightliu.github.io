@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Useful Tools</title>
+  <link rel="icon" href="favicon.ico">
+  <link rel="import" href="www.baidu.com" id="cHeader">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    /* general style*/
+
+    table {
+      border-collapse: collapse;
+      height: 100%;
+    }
+
+    th,
+    td,
+    #wellnamelist {
+      border: 1px solid black;
+      padding: 8px;
+      text-align: left;
+      min-width: 50px;
+      min-height: 100px;
+    }
+
+    aside {
+      background-color: aliceblue;
+      height: 100%;
+      width: -moz-fit-content;
+      width: fit-content;
+      align-items: left;
+      padding-left: 0.1rem;
+      margin-left: 0.1rem;
+      float: right;
+      font-style: italic;
+      box-shadow: inset 5px 0px 5px -5px;
+    }
+
+    th {
+      background: #e3fc01;
+    }
+  </style>
+  <style>
+    /* accordion */
+    h1 {
+      background-color: whitesmoke;
+      color: #444;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+      border: none;
+      outline: none;
+      transition: 0.4s;
+      align-self: center;
+      vertical-align: middle;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    /* 设置点击和鼠标移到选项上面时（悬停）的样式 */
+    .active,
+    h1:hover {
+      background-color: bisque;
+    }
+
+    .active:hover {
+      background-color: burlywood;
+
+    }
+
+    /* 为手风琴面板设计样式。 默认隐藏 */
+    .panel {
+      padding: 0 18px;
+      background-color: white;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.2s ease-out;
+    }
+
+    /* 设置 +、- 标志 */
+    h1:before {
+      content: '➡️';
+      font-size: 70%;
+      /* Unicode 字符 + 号 */
+      font-size: normal;
+      color: #777;
+      float: left;
+      margin-left: 5px;
+      margin-right: 5px;
+    }
+
+    .active:before {
+      content: '⬇️';
+      font-size: 70%;
+      float: left;
+      margin-left: 5px;
+      margin-right: 5px;
+      /* Unicode 字符 - 号 */
+    }
+  </style>
+</head>
+
+<body>
+  <aside>
+    <a target="_top">TOP</a>
+  </aside>
+  <h1 id="color_picker">color picker <input title="color_picker" data-jscolor="" /></h1>
+  <div></div>
+  <h1 id="wellname process">wellname process</h1>
+  <div class="panel">
+    <textarea placeholder="input wellnamelist" id="wellnamelist" label="sd"></textarea>
+    <table id="editableTable">
+      <thead>
+        <tr>
+          <th>a2sql</th>
+          <th>toPinyin:UpperCase</th>
+          <th>toPinyin:LowerCase</th>
+          <th>toList</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td id="a2sql"></td>
+          <td id="topinyin_upper"></td>
+          <td id="topinyin_lower"></td>
+          <td id="to_list"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <h1> 分层按名称合并
+    <span>with four columns : wn - formation - top - bottom </span>
+    <input title="import" type="file" id="fileInput" />
+  </h1>
+  <div class="panel">
+    <button type="button" onclick="group()">download</button>
+  </div>
+  <h1> 速度文件转 - VT pairs
+    <input title="import" type="file" id="fileInput2" />
+  </h1>
+  <div class="panel">
+    <button type="button" onclick="newellpre()">download</button>
+    <div id="temp-console"></div>
+  </div>
+</body>
+<script src="https://cdn.bootcdn.net/ajax/libs/pinyin-pro/3.23.0/index.js"></script>
+<script src="https://unpkg.com/browse/danfojs@1.1.2/dist/danfojs-browser/src/index.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/jscolor/2.5.2/jscolor.min.js"></script>
+<script> // accordion menu
+  var acc = document.getElementsByTagName('h1');
+  var i;
+
+  for (i = 0; i < acc.length; i++) {
+    acc[i].addEventListener("click", function () {
+      this.classList.toggle("active");
+      var panel = this.nextElementSibling;
+      if (panel.style.maxHeight) {
+        panel.style.maxHeight = null;
+      } else {
+        panel.style.maxHeight = panel.scrollHeight + "px";
+      }
+    });
+  }
+</script>
+<script>  // 按<h1>生成导航
+  (() => {
+    const h1 = document.getElementsByTagName("h1");
+    const aside = document.getElementsByTagName("aside");
+    let headlist = document.createElement("ol");
+    for (const key in h1) {
+      if (Object.hasOwnProperty.call(h1, key)) {
+        const element = h1[key];
+        const aele = document.createElement("a");
+        aele.href = "#" + element.innerText;
+        aele.innerText = element.innerText;
+        const lirec = document.createElement("li");
+        lirec.appendChild(aele);
+        headlist.appendChild(lirec);
+      }
+    }
+    for (const index in aside) {
+      if (Object.hasOwnProperty.call(aside, index)) {
+        const element = aside[index];
+        element.appendChild(headlist.cloneNode(true));
+      }
+    }
+  })();
+</script>
+<script>  //wellname process
+  var { pinyin } = pinyinPro;
+  let regAllBlank = /\x20+/g; //拼配所有空格
+  let regall = /\s+/g;
+  let reghb = /^\s+|\s+$/g; //拼配两端空白符
+
+  function topinyin(text, UPPERCASE = true) {
+    str = pinyin(text, { toneType: "none", v: true, separator: "" });
+    if (UPPERCASE) return str.toUpperCase();
+    else return str.toLowerCase();
+  }
+  let wellnamelist = document.getElementById("wellnamelist");
+  const a2sql = document.getElementById("a2sql");
+  const outputdom_upper = document.getElementById("topinyin_upper");
+  const outputdom_lower = document.getElementById("topinyin_lower");
+  const to_list = document.getElementById("to_list");
+
+
+  wellnamelist.addEventListener("input", function () {
+
+    a2sql.innerText =
+      "where jh='" +
+      wellnamelist.value.replace(reghb, "").replace(regall, "'\n or jh='") +
+      "'";
+    outputdom_upper.innerText = topinyin(wellnamelist.value);
+    outputdom_lower.innerText = topinyin(wellnamelist.value, false);
+    to_list.innerText=
+      "['" +
+      wellnamelist.value.replace(reghb, "").replace(regall, "','") +
+      "']";
+    wellnamelist.parentElement.style.maxHeight = wellnamelist.parentElement.scrollHeight + "px"
+  });
+
+</script>
+<script>  //地层分层 按名称合并
+  function group() {
+    let fileinput = document.querySelector('#fileInput')
+    if (fileinput.files.length > 0) {
+      dfd.readCSV(fileinput.files[0]).then(df => {
+
+        let grp = df.applyMap((ele) => {
+          return ele.toString().replace(/\s*/g, "")
+        }).groupby(df.columns.slice(0, 2))
+        let mindf = grp.col([df.columns[2]]).min()
+        let maxdf = grp.col([df.columns[3]]).max()
+        let merge_df = dfd.merge({ "left": mindf, "right": maxdf, "on": df.columns.slice(0, 2), how: "outer" })
+        console.log(merge_df, dfd.toCSV(merge_df))
+        dfd.toCSV(merge_df, { fileName: "resOut.csv", download: true });
+      })
+    }
+  }
+
+  function savefile(saveDatas) { //deperated
+    var blob = new Blob(saveDatas, { type: 'html/text' })
+    // 创建一个blob的对象，把Json转化为字符串作为我们的值
+    if ("msSaveOrOpenBlob" in navigator) {
+      // 这个判断要不要都行，如果是IE浏览器，使用的是这个，
+      window.navigator.msSaveOrOpenBlob(blob, "results.csv");
+    } else {    // 不是IE浏览器使用的下面的
+      var url = window.URL.createObjectURL(blob)
+      // 上面这个是创建一个blob的对象连链接，
+      var link = document.createElement('a')
+      // 创建一个链接元素，是属于 a 标签的链接元素，所以括号里才是a，
+
+      link.href = url;
+      // 把上面获得的blob的对象链接赋值给新创建的这个 a 链接
+      link.setAttribute('download', "results.csv")
+      // 设置下载的属性（所以使用的是download），这个是a 标签的一个属性
+      // 后面的是文件名字，可以更改
+      link.click();
+      // 使用js点击这个链接
+    }
+
+  }
+</script>
+<script> //速度转vtpairs
+  let fileinput2 = document.querySelector('#fileInput2')
+  let reader = new FileReader()
+  function newellpre(fileinput = fileinput2) {
+    if (fileinput.files.length > 0) {
+      reader.readAsText(fileinput.files[0])
+      reader.onload = () => {
+        let res = reader.result
+        res = res.split(/[\s,]+/g)
+        let outMatrix = []
+        let stack = []
+        let flag = [0, 0]
+        let matchlist
+        for (let item of res) {
+          matchlist = item.match(/[a-zA-Z]+|[0-9]+/g)
+          // 出入栈状态
+          if (matchlist) {
+            if (matchlist[0] == 'T') outMatrix.push([...stack, matchlist[1], matchlist[3]])
+            else if (matchlist[0].search(/X|Y/g) == 0) stack.push(matchlist[1])
+            else if (matchlist[0] == 'CMP') {
+              stack = stack.slice(0, 1)
+              stack.push(matchlist[1])
+            }
+            else if (matchlist[0] == 'LINE') {
+              stack = []
+              stack.push(matchlist[1])
+            }
+          }
+        }
+        dfd.toCSV(new dfd.DataFrame(outMatrix, { columns: ['LINE', 'CMP', 'X', 'Y', 'T', 'V'] }), { fileName: "resOut.csv", download: true });
+      }
+    }
+  }
+  function splittext() { }
+</script>
+
+</html>
